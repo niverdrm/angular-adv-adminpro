@@ -7,6 +7,7 @@ import { environment } from 'src/environments/environment';
 
 import { LoginForm } from '../interfaces/login.form.interface';
 import { RegisterForm } from '../interfaces/register.form.interface';
+import { Usuario } from '../models/usuario.model';
 
 const base_url = environment.base_url;
 declare const gapi: any;
@@ -16,6 +17,8 @@ declare const gapi: any;
 })
 export class UsuarioService {
   public auth2: any;
+  public usuario!: Usuario;
+
   constructor(
     private http: HttpClient,
     private router: Router,
@@ -37,6 +40,14 @@ export class UsuarioService {
     });
   }
 
+  get token() {
+    return localStorage.getItem('token') || '';
+  }
+
+  get uid(): string {
+    return this.usuario.uid || '';
+  }
+
   logout() {
     localStorage.removeItem('token');
     this.auth2.signOut().then(() => {
@@ -47,18 +58,22 @@ export class UsuarioService {
   }
 
   validarToken(): Observable<boolean> {
-    const token = localStorage.getItem('token') || '';
     return this.http
       .get(`${base_url}/login/renew`, {
         headers: {
-          'x-token': token,
+          'x-token': this.token,
         },
       })
       .pipe(
-        tap((res: any) => {
+        map((res: any) => {
+          const { nombre, email, img = '', google, role, uid } = res.usuario;
+
+          this.usuario = new Usuario(nombre, email, '', img, google, role, uid);
+
           localStorage.setItem('token', res.token);
+          return true;
         }),
-        map((res) => true),
+
         catchError((error) => of(false))
       );
   }
@@ -71,6 +86,19 @@ export class UsuarioService {
     );
   }
 
+  actualizarPerfil(data: { email: string; nombre: string; role: string }) {
+    data = {
+      ...data,
+      role: this.usuario.role || '',
+    };
+
+    return this.http.put(`${base_url}/usuarios/${this.uid}`, data, {
+      headers: {
+        'x-token': this.token,
+      },
+    });
+  }
+
   login(formData: LoginForm) {
     return this.http.post(`${base_url}/login`, formData).pipe(
       tap((res: any) => {
@@ -78,6 +106,7 @@ export class UsuarioService {
       })
     );
   }
+
   loginGoogle(token: any) {
     return this.http.post(`${base_url}/login/google`, { token }).pipe(
       tap((res: any) => {
