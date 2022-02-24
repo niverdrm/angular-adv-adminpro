@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { CargarUsuario } from '../interfaces/cargar-usuario.interface';
 
 import { LoginForm } from '../interfaces/login.form.interface';
 import { RegisterForm } from '../interfaces/register.form.interface';
@@ -46,6 +47,13 @@ export class UsuarioService {
 
   get uid(): string {
     return this.usuario.uid || '';
+  }
+  get headers() {
+    return {
+      headers: {
+        'x-token': this.token,
+      },
+    };
   }
 
   logout() {
@@ -92,11 +100,11 @@ export class UsuarioService {
       role: this.usuario.role || '',
     };
 
-    return this.http.put(`${base_url}/usuarios/${this.uid}`, data, {
-      headers: {
-        'x-token': this.token,
-      },
-    });
+    return this.http.put(
+      `${base_url}/usuarios/${this.uid}`,
+      data,
+      this.headers
+    );
   }
 
   login(formData: LoginForm) {
@@ -113,6 +121,43 @@ export class UsuarioService {
         console.log(res);
         localStorage.setItem('token', res.token);
       })
+    );
+  }
+
+  cargarUsuario(desde: number = 0) {
+    const url = `${base_url}/usuarios?desde=${desde}`;
+    return this.http.get<CargarUsuario>(url, this.headers).pipe(
+      map((res) => {
+        const usuarios = res.usuarios.map(
+          (user) =>
+            new Usuario(
+              user.nombre,
+              user.email,
+              '',
+              user.img,
+              user.google,
+              user.role,
+              user.uid
+            )
+        );
+        return {
+          total: res.total,
+          usuarios,
+        };
+      })
+    );
+  }
+
+  eliminarUsuario(usuario: Usuario) {
+    console.log('eliminando');
+    const url = `${base_url}/usuarios/${usuario.uid}`;
+    return this.http.delete(url, this.headers);
+  }
+  CambiarUsuario(usuario: Usuario) {
+    return this.http.put(
+      `${base_url}/usuarios/${usuario.uid}`,
+      usuario,
+      this.headers
     );
   }
 }
