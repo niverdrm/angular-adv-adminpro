@@ -153,6 +153,7 @@ export class UsuarioService {
     const url = `${base_url}/usuarios/${usuario.uid}`;
     return this.http.delete(url, this.headers);
   }
+
   CambiarUsuario(usuario: Usuario) {
     return this.http.put(
       `${base_url}/usuarios/${usuario.uid}`,
