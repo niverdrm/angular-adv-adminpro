@@ -28,6 +28,11 @@ export class UsuarioService {
     this.googleInit();
   }
 
+  guardarLocalStorage(token: string, menu: any) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('menu', JSON.stringify(menu));
+  }
+
   googleInit() {
     return new Promise((resolve: any) => {
       gapi.load('auth2', () => {
@@ -45,6 +50,10 @@ export class UsuarioService {
     return localStorage.getItem('token') || '';
   }
 
+  get role(): 'ADMIN_ROLE' | 'USER_ROLE' {
+    return this.usuario.role || 'USER_ROLE';
+  }
+
   get uid(): string {
     return this.usuario.uid || '';
   }
@@ -58,6 +67,9 @@ export class UsuarioService {
 
   logout() {
     localStorage.removeItem('token');
+
+    localStorage.removeItem('menu');
+
     this.auth2.signOut().then(() => {
       this.ngZone.run(() => {
         this.router.navigateByUrl('/login');
@@ -78,7 +90,8 @@ export class UsuarioService {
 
           this.usuario = new Usuario(nombre, email, '', img, google, role, uid);
 
-          localStorage.setItem('token', res.token);
+          this.guardarLocalStorage(res.token, res.menu);
+
           return true;
         }),
 
@@ -89,7 +102,7 @@ export class UsuarioService {
   crearUsuario(formData: RegisterForm) {
     return this.http.post(`${base_url}/usuarios`, formData).pipe(
       tap((res: any) => {
-        localStorage.setItem('token', res.token);
+        this.guardarLocalStorage(res.token, res.menu);
       })
     );
   }
@@ -110,7 +123,7 @@ export class UsuarioService {
   login(formData: LoginForm) {
     return this.http.post(`${base_url}/login`, formData).pipe(
       tap((res: any) => {
-        localStorage.setItem('token', res.token);
+        this.guardarLocalStorage(res.token, res.menu);
       })
     );
   }
@@ -118,8 +131,7 @@ export class UsuarioService {
   loginGoogle(token: any) {
     return this.http.post(`${base_url}/login/google`, { token }).pipe(
       tap((res: any) => {
-        console.log(res);
-        localStorage.setItem('token', res.token);
+        this.guardarLocalStorage(res.token, res.menu);
       })
     );
   }
